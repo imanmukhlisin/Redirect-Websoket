@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/r/:hash_code", "destination": "/api/r" }
+  ]
+}
