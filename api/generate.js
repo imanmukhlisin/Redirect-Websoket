@@ -60,6 +60,7 @@ export default async function handler(req, res) {
       success: true,
       hash_code: hashCode,
       short_url: `${protocol}${customDomain}/r/${hashCode}`,
+      image_url: image_url || null,
     });
   } catch (err) {
     console.error("Generate error:", err);
