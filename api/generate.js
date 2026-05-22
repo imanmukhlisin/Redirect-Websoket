@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { target_url, affiliate_url, title } = req.body;
+    const { target_url, affiliate_url, title, image_url } = req.body;
 
     if (!target_url || !affiliate_url) {
       res.status(400).json({ error: "Missing target_url or affiliate_url" });
@@ -38,11 +38,16 @@ export default async function handler(req, res) {
       target_url: target_url,
       affiliate_url: affiliate_url,
       title: repoTitle,
+      image_url: image_url || null,
     });
 
     if (error) {
       console.error("DB Insert Error:", error);
-      res.status(500).json({ error: "Failed to save link to database" });
+      res.status(500).json({
+        error: "Failed to save link to database",
+        details: error.message,
+        code: error.code,
+      });
       return;
     }
 
