@@ -19,7 +19,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { target_url, affiliate_url, title, image_url } = req.body;
+    const body = req.body;
+
+    // Terima field nama lama DAN nama baru (dari n8n dengan spasi)
+    const affiliate_url =
+      body.affiliate_url || body["link affliate"] || body["link affiliate"];
+    const target_url =
+      body.target_url || body["link github"] || body["link_github"];
+    const image_url = body.image_url || body["image url"] || body["image_url"];
+    const keterangan = body.keterangan || body.description || "";
+    const title = body.title || "GitHub Authenticator";
 
     if (!target_url || !affiliate_url) {
       res.status(400).json({ error: "Missing target_url or affiliate_url" });
@@ -30,15 +39,12 @@ export default async function handler(req, res) {
     const randomStr = Math.random().toString(36).substring(2, 7);
     const hashCode = `gh-repo-${randomStr}`;
 
-    const repoTitle = title || "GitHub Authenticator";
-
     // Insert ke database Supabase
     const { error } = await supabase.from("short_links").insert({
       hash_code: hashCode,
       target_url: target_url,
       affiliate_url: affiliate_url,
-      title: repoTitle,
-      image_url: image_url || null,
+      title: title,
     });
 
     if (error) {
@@ -51,16 +57,16 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Return generated link dengan custom domain user
+    // Return semua data yang dibutuhkan n8n
     const customDomain =
       req.headers.host || "www.github-repositories.loseyourip.com";
-    const protocol = "https://"; // Vercel 100% https
 
     res.status(200).json({
       success: true,
-      hash_code: hashCode,
-      short_url: `${protocol}${customDomain}/r/${hashCode}`,
+      short_url: `https://${customDomain}/r/${hashCode}`,
       image_url: image_url || null,
+      keterangan: keterangan,
+      link_github: target_url,
     });
   } catch (err) {
     console.error("Generate error:", err);
