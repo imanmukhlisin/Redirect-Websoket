@@ -30,6 +30,11 @@ export default async function handler(req, res) {
     const keterangan = body.keterangan || body.description || "";
     const title = body.title || "GitHub Authenticator";
 
+    // Field baru untuk Shopee Product di Landing Page
+    const shopee_title = body.shopee_title || body["shopee title"] || "";
+    const shopee_image_url =
+      body.shopee_image_url || body["shopee image url"] || "";
+
     if (!target_url || !affiliate_url) {
       res.status(400).json({ error: "Missing target_url or affiliate_url" });
       return;
@@ -45,6 +50,9 @@ export default async function handler(req, res) {
       target_url: target_url,
       affiliate_url: affiliate_url,
       title: title,
+      image_url: image_url,
+      shopee_title: shopee_title,
+      shopee_image_url: shopee_image_url,
     });
 
     if (error) {

@@ -40,30 +40,33 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Query Supabase
+    // 3. Ambil data dari tabel short_links
     const { data, error } = await supabase
       .from("short_links")
-      .select("*")
+      .select(
+        "target_url, affiliate_url, title, image_url, shopee_title, shopee_image_url",
+      )
       .eq("hash_code", hashCode)
       .single();
 
-    if (error || !data) {
-      res.status(404).send(render404(hashCode));
-      return;
+    // 4. Update click_count di background (tidak diblok)
+    if (data) {
+      supabase.rpc("increment_clicks", { row_id: hashCode }).then().catch();
     }
 
-    // Fire-and-forget: increment click counter
-    supabase
-      .from("short_links")
-      .update({ click_count: (data.click_count || 0) + 1 })
-      .eq("hash_code", hashCode)
-      .then(() => {});
+    if (error || !data) {
+      console.error("Supabase Error:", error);
+      res.status(404).send("Link not found or expired.");
+      return;
+    }
 
     // Render interstitial page
     const html = renderInterstitial({
       title: data.title,
       targetUrl: data.target_url,
       affiliateUrl: data.affiliate_url,
+      shopeeTitle: data.shopee_title,
+      shopeeImageUrl: data.shopee_image_url,
     });
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
