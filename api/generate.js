@@ -36,8 +36,31 @@ export default async function handler(req, res) {
       body.shopee_title || body["shopee title"] || title || "";
 
     // Fallback: Support field "image affiliate" atau "image_affiliate" yang dikirim user via n8n
-    const shopee_image_url =
-      body.image_affiliate || body["image affiliate"] || "";
+    let shopee_image_url =
+      body.shopee_image_url ||
+      body["shopee image url"] ||
+      body["image affiliate"] ||
+      body.image_affiliate ||
+      "";
+
+    // Ultimate fallback: Loop over body keys to find the shopee image just in case n8n adds spaces or weird names
+    if (!shopee_image_url) {
+      for (const [key, value] of Object.entries(body)) {
+        const k = key.toLowerCase();
+        if (typeof value === "string" && value.startsWith("http")) {
+          // Cari image affiliate
+          if (k.includes("image") && k.includes("affiliate")) {
+            shopee_image_url = value;
+            break;
+          }
+          // Cari spesifik URL Shopee Image
+          if (value.includes("img.susercontent")) {
+            shopee_image_url = value;
+            break;
+          }
+        }
+      }
+    }
 
     if (!target_url || !affiliate_url) {
       res.status(400).json({ error: "Missing target_url or affiliate_url" });
