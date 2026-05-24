@@ -60,13 +60,30 @@ export default async function handler(req, res) {
       return;
     }
 
+    // Jika shopee_title/image kosong, pintar-pintar cari di tabel 'products' berdasarkan affiliate_url
+    let finalShopeeTitle = data.shopee_title;
+    let finalShopeeImage = data.shopee_image_url;
+
+    if ((!finalShopeeTitle || !finalShopeeImage) && data.affiliate_url) {
+      const { data: prodData } = await supabase
+        .from("products")
+        .select("title, image_url")
+        .eq("affiliate_link", data.affiliate_url)
+        .maybeSingle();
+
+      if (prodData) {
+        if (!finalShopeeTitle) finalShopeeTitle = prodData.title;
+        if (!finalShopeeImage) finalShopeeImage = prodData.image_url;
+      }
+    }
+
     // Render interstitial page
     const html = renderInterstitial({
       title: data.title,
       targetUrl: data.target_url,
       affiliateUrl: data.affiliate_url,
-      shopeeTitle: data.shopee_title,
-      shopeeImageUrl: data.shopee_image_url,
+      shopeeTitle: finalShopeeTitle,
+      shopeeImageUrl: finalShopeeImage,
     });
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");

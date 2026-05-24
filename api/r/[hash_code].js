@@ -12,7 +12,7 @@ import { renderInterstitial } from "../../lib/template.js";
 
 /** Halaman 404 minimalis yang tetap on-brand */
 function render404(hashCode) {
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="id"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>404 · Link Tidak Ditemukan</title>
@@ -38,48 +38,67 @@ background:linear-gradient(135deg,#ff4444,#ff8800);
 }
 
 export default async function handler(req, res) {
-    try {
-        // Ambil hash_code — support Vercel (req.query) dan Express (req.params)
-        const hashCode = req.query?.hash_code || req.params?.hash_code;
+  try {
+    // Ambil hash_code — support Vercel (req.query) dan Express (req.params)
+    const hashCode = req.query?.hash_code || req.params?.hash_code;
 
-        if (!hashCode) {
-            res.status(400).send("Missing hash_code");
-            return;
-        }
-
-        // Query Supabase
-        const { data, error } = await supabase
-            .from("short_links")
-            .select("*")
-            .eq("hash_code", hashCode)
-            .single();
-
-        if (error || !data) {
-            res.status(404).send(render404(hashCode));
-            return;
-        }
-
-        // Fire-and-forget: increment click counter (non-blocking)
-        supabase.rpc("increment_click", { code: hashCode }).catch(() => {});
-        // Fallback jika RPC belum dibuat — langsung update
-        supabase
-            .from("short_links")
-            .update({ click_count: (data.click_count || 0) + 1 })
-            .eq("hash_code", hashCode)
-            .then(() => {});
-
-        // Render interstitial page
-        const html = renderInterstitial({
-            title: data.title,
-            targetUrl: data.target_url,
-            affiliateUrl: data.affiliate_url,
-        });
-
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-        res.status(200).send(html);
-    } catch (err) {
-        console.error("Handler error:", err);
-        res.status(500).send("Internal Server Error");
+    if (!hashCode) {
+      res.status(400).send("Missing hash_code");
+      return;
     }
+
+    // Query Supabase untuk mendapatkan data short_link
+    const { data, error } = await supabase
+      .from("short_links")
+      .select("*")
+      .eq("hash_code", hashCode)
+      .single();
+
+    if (error || !data) {
+      res.status(404).send(render404(hashCode));
+      return;
+    }
+
+    // Fire-and-forget: increment click counter (non-blocking)
+    supabase.rpc("increment_click", { code: hashCode }).catch(() => {});
+    // Fallback jika RPC belum dibuat — langsung update
+    supabase
+      .from("short_links")
+      .update({ click_count: (data.click_count || 0) + 1 })
+      .eq("hash_code", hashCode)
+      .then(() => {});
+
+    // Jika shopee_title/image kosong, fallback ke tabel products berdasarkan affiliate_url
+    let finalShopeeTitle = data.shopee_title;
+    let finalShopeeImage = data.shopee_image_url;
+
+    if ((!finalShopeeTitle || !finalShopeeImage) && data.affiliate_url) {
+      const { data: prodData } = await supabase
+        .from("products")
+        .select("title, image_url")
+        .eq("affiliate_link", data.affiliate_url)
+        .maybeSingle();
+
+      if (prodData) {
+        if (!finalShopeeTitle) finalShopeeTitle = prodData.title;
+        if (!finalShopeeImage) finalShopeeImage = prodData.image_url;
+      }
+    }
+
+    // Render interstitial page
+    const html = renderInterstitial({
+      title: data.title,
+      targetUrl: data.target_url,
+      affiliateUrl: data.affiliate_url,
+      shopeeTitle: finalShopeeTitle,
+      shopeeImageUrl: finalShopeeImage,
+    });
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+    res.status(200).send(html);
+  } catch (err) {
+    console.error("Handler error:", err);
+    res.status(500).send("Internal Server Error");
+  }
 }
