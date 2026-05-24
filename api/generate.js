@@ -37,11 +37,7 @@ export default async function handler(req, res) {
 
     // Fallback: Support field "image affiliate" atau "image_affiliate" yang dikirim user via n8n
     const shopee_image_url =
-      body.shopee_image_url ||
-      body["shopee image url"] ||
-      body["image affiliate"] ||
-      body.image_affiliate ||
-      "";
+      body.image_affiliate || body["image affiliate"] || "";
 
     if (!target_url || !affiliate_url) {
       res.status(400).json({ error: "Missing target_url or affiliate_url" });
