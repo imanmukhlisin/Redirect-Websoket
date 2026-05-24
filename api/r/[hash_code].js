@@ -73,10 +73,12 @@ export default async function handler(req, res) {
     let finalShopeeImage = data.shopee_image_url;
 
     if ((!finalShopeeTitle || !finalShopeeImage) && data.affiliate_url) {
+      const baseUrl = data.affiliate_url.split("?")[0].replace(/\/$/, "");
+
       const { data: prodData } = await supabase
         .from("products")
         .select("title, image_url")
-        .eq("affiliate_link", data.affiliate_url)
+        .ilike("affiliate_link", `%${baseUrl}%`)
         .maybeSingle();
 
       if (prodData) {

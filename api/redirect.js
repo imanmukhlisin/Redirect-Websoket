@@ -65,15 +65,24 @@ export default async function handler(req, res) {
     let finalShopeeImage = data.shopee_image_url;
 
     if ((!finalShopeeTitle || !finalShopeeImage) && data.affiliate_url) {
-      const { data: prodData } = await supabase
+      // Bersihkan URL dari query parameters (?) untuk pencarian yang lebih akurat
+      const baseUrl = data.affiliate_url.split("?")[0].replace(/\/$/, ""); // Buang trailing slash juga
+
+      const { data: prodData, error: prodErr } = await supabase
         .from("products")
         .select("title, image_url")
-        .eq("affiliate_link", data.affiliate_url)
+        .ilike("affiliate_link", `%${baseUrl}%`)
         .maybeSingle();
 
       if (prodData) {
         if (!finalShopeeTitle) finalShopeeTitle = prodData.title;
         if (!finalShopeeImage) finalShopeeImage = prodData.image_url;
+      } else {
+        console.warn(
+          "Product fallback failed or not found for:",
+          baseUrl,
+          prodErr,
+        );
       }
     }
 
