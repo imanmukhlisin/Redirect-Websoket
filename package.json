@@ -10,7 +10,6 @@
     "dependencies": {
         "@supabase/supabase-js": "^2.49.0",
         "express": "^4.21.0",
-        "iman-wa-bot": "file:../iman-wa-bot",
         "postgres": "^3.4.9"
     }
 }
